@@ -46,7 +46,7 @@ const useMap = ({ onMapClick, onMapLoad }: UseMap) => {
         // caution: it's [Longitude, Latitude] here!
         // *google maps does [Latitude, Longitude] ?!
         center: [51.366624055720855, 35.7004387316396],
-        zoom: 11,
+        zoom: 9,
       });
       // on load event
       mapRef.current.on("load", onLoad);
