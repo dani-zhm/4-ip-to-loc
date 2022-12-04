@@ -7,9 +7,10 @@ import { Button, Pane, Text } from "evergreen-ui";
 import randomInt from "./utils/randomInt";
 import { features } from "./assets/lac.json";
 import { useEffect, useState } from "react";
-import { useAtomValue } from "jotai";
-import { mapAtom, mapLoadedAtom } from "./atoms";
-import axios from "axios";
+import { useAtomValue, useSetAtom } from "jotai";
+import { addLogMsgAtom, mapAtom, mapLoadedAtom } from "./atoms";
+import axios, { AxiosError } from "axios";
+import Logger from "./utils/Logger";
 
 // plugin to fix how rtl languages are display
 mapboxgl.setRTLTextPlugin(
@@ -30,23 +31,17 @@ const findFeatureFromId = (id: string) => {
   return features.find((f) => f.properties.id === id);
 };
 
-const getUserLocationGeojson = async () => {
-  const res = await axios.get("http://uloc.ir");
-  const id = res.data.location;
-
-  // const id = randomID();
-  const feature = findFeatureFromId(id);
-  return feature;
-};
+const apiUrl = "http://uloc.ir/api";
 
 function App() {
   // const [id, setid] = useState("");
   const map = useAtomValue(mapAtom);
   const mapLoaded = useAtomValue(mapLoadedAtom);
+  const addLogMsg = useSetAtom(addLogMsgAtom);
 
   const displayLocation = async () => {
     const feature = await getUserLocationGeojson();
-    if (!feature) return console.log(`no feature w id = ${id}`);
+    if (!feature) return console.log(`problem connecting to api`);
 
     const provinceSource = map?.getSource("province") as any;
     provinceSource?.setData(feature);
@@ -63,6 +58,27 @@ function App() {
     );
   };
 
+  const getUserLocationGeojson = async () => {
+    addLogMsg(`GET: ${apiUrl}`);
+    try {
+      const res = await axios.get(apiUrl);
+      addLogMsg(`success -> res.data -> ${JSON.stringify(res.data)}`);
+      // const id = randomID();
+      const id = res.data.location;
+      addLogMsg(`location id: ${id}`);
+      const feature = findFeatureFromId(id);
+      if (!feature) {
+        addLogMsg(`couldn't find polygon`);
+      } else {
+        addLogMsg(`found polygon with id: ${feature.properties.id}`);
+      }
+      return feature;
+    } catch (error) {
+      let err = error as AxiosError;
+      addLogMsg(`fail -> res.data -> ${JSON.stringify(err.response?.data)}`);
+    }
+  };
+
   useEffect(() => {
     displayLocation();
   }, [mapLoaded]);
@@ -70,13 +86,7 @@ function App() {
   return (
     <div>
       <Mapbox>
-        <div className="absolute bottom-0 left-1/2 p-12 -translate-x-1/2">
-          <div className="flex justify-center items-center">
-            <Button onClick={displayLocation} size="large" className="pointer-events-auto">
-              IP to Loc
-            </Button>
-          </div>
-        </div>
+        <Logger />
       </Mapbox>
     </div>
   );

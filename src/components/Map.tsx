@@ -22,7 +22,14 @@ const Mapbox: FC<PropsWithChildren> = ({ children }) => {
   ) => {
     ev.target.addSource("province", {
       type: "geojson",
-      data: lac,
+      data: {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "Polygon",
+          coordinates: [],
+        },
+      },
     });
 
     ev.target.addLayer({
